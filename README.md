@@ -1,0 +1,2 @@
+# BeadsImageConverter
+画像をビーズ設計図に変換するツール
