@@ -20,16 +20,18 @@ namespace BeadsImageConverter
     public partial class FormMain : Form
     {
         private const int ERROR_CANCEL = 0;
-        private const int ERROR_LOAD_PALLET = -1;
+        private const int ERROR_LOAD_PALETTE = -1;
         private const int ERROR_CREATE_WORKBOOK = -2;
         private const int ERROR_CREATE_RESULT = -3;
 
         private string FileName;
-        private string PalletName;
+        private string PaletteName;
+        private bool Special;
+        private bool Discontinue;
         private Bitmap Image;
-        private Dictionary<string, string> PalletMap;
+        private Dictionary<string, string> PaletteMap;
         private Dictionary<Color, int> ColorCashe;
-        private List<Bead> Pallet;
+        private List<Bead> Palette;
         private IProgress<int> Progress;
         private int ProgressCount;
         private CancellationTokenSource Cancel;
@@ -37,14 +39,14 @@ namespace BeadsImageConverter
         public FormMain()
         {
             InitializeComponent();
-            PalletMap = new Dictionary<string, string>();
+            PaletteMap = new Dictionary<string, string>();
             ColorCashe = new Dictionary<Color, int>();
-            Pallet = new List<Bead>();
+            Palette = new List<Bead>();
             Progress = new Progress<int>(new Action<int>(showProgress));
             AssemblyName name = Assembly.GetExecutingAssembly().GetName();
             Text = string.Format("{0} v{1}", name.Name, name.Version);
             pbImage.AllowDrop = true;
-            loadPalletName();
+            loadPaletteName();
         }
 
         private void pbImage_Click(object sender, EventArgs e)
@@ -94,11 +96,19 @@ namespace BeadsImageConverter
             if (cbConvert.Checked)
             {
                 cbConvert.Text = "キャンセル";
-                convert(cbPallet.Text);
+                pbImage.Enabled = false;
+                cbPalette.Enabled = false;
+                cbSpecial.Enabled = false;
+                cbDiscontinue.Enabled = false;
+                convert(cbPalette.Text);
             }
             else
             {
                 cbConvert.Text = "変換";
+                pbImage.Enabled = true;
+                cbPalette.Enabled = true;
+                cbSpecial.Enabled = true;
+                cbDiscontinue.Enabled = true;
                 if (Cancel != null)
                 {
                     Cancel.Cancel();
@@ -109,19 +119,19 @@ namespace BeadsImageConverter
         /// <summary>
         ///     パレット名一覧を読み込む
         /// </summary>
-        private void loadPalletName()
+        private void loadPaletteName()
         {
             try
             {
-                string[] files = Directory.GetFiles(".\\pallet", "*.plt", SearchOption.TopDirectoryOnly);
+                string[] files = Directory.GetFiles(".\\palette", "*.plt", SearchOption.TopDirectoryOnly);
                 for (int i = 0; i < files.Length; i++)
                 {
                     string fileName = files[i];
-                    string palletName = getPalletName(fileName);
-                    if (palletName != null)
+                    string paletteName = getPaletteName(fileName);
+                    if (paletteName != null)
                     {
-                        cbPallet.Items.Add(palletName);
-                        PalletMap.Add(palletName, fileName);
+                        cbPalette.Items.Add(paletteName);
+                        PaletteMap.Add(paletteName, fileName);
                     }
                 }
             }
@@ -130,12 +140,12 @@ namespace BeadsImageConverter
                 Console.WriteLine(ex.Message);
             }
 
-            if (cbPallet.Items.Count == 0)
+            if (cbPalette.Items.Count == 0)
             {
-                cbPallet.Items.Add("パレットが見つかりません");
-                cbPallet.Enabled = false;
+                cbPalette.Items.Add("パレットが見つかりません");
+                cbPalette.Enabled = false;
             }
-            cbPallet.SelectedIndex = 0;
+            cbPalette.SelectedIndex = 0;
         }
 
         /// <summary>
@@ -143,7 +153,7 @@ namespace BeadsImageConverter
         /// </summary>
         /// <param name="fileName">ファイルパス</param>
         /// <returns>パレット名</returns>
-        private string getPalletName(string fileName)
+        private string getPaletteName(string fileName)
         {
             string ret = null;
             try
@@ -197,7 +207,7 @@ namespace BeadsImageConverter
                     case ERROR_CANCEL:
                         MessageBox.Show(this, "変換をキャンセルしました", "キャンセル", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         break;
-                    case ERROR_LOAD_PALLET:
+                    case ERROR_LOAD_PALETTE:
                         MessageBox.Show(this, "パレットの読込に失敗しました", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
                         break;
                     case ERROR_CREATE_WORKBOOK:
@@ -238,14 +248,14 @@ namespace BeadsImageConverter
                 g.DrawImage(Image, 0, 0, bitmap.Width, bitmap.Height);
             }
             pbImage.Image = bitmap;
-            cbConvert.Enabled = cbPallet.Enabled;
+            cbConvert.Enabled = cbPalette.Enabled;
         }
 
         /// <summary>
         ///     画像ファイルの変換を行なう
         /// </summary>
-        /// <param name="palletName">パレット名</param>
-        private async void convert(string palletName)
+        /// <param name="paletteName">パレット名</param>
+        private async void convert(string paletteName)
         {
             ProgressCount = 0;
             await Task.Run(() =>
@@ -253,9 +263,9 @@ namespace BeadsImageConverter
                 try
                 {
                     Cancel = new CancellationTokenSource();
-                    if (!loadPallet(palletName))
+                    if (!loadPalette(paletteName))
                     {
-                        Progress.Report(ERROR_LOAD_PALLET);
+                        Progress.Report(ERROR_LOAD_PALETTE);
                     }
                     else if (!createWorkBook(Path.ChangeExtension(FileName, ".xlsx")))
                     {
@@ -281,20 +291,28 @@ namespace BeadsImageConverter
         /// <summary>
         ///     パレットを読み込む
         /// </summary>
-        /// <param name="palletName">パレット名</param>
+        /// <param name="paletteName">パレット名</param>
         /// <returns>読込が成功したか否か</returns>
-        private bool loadPallet(string palletName)
+        private bool loadPalette(string paletteName)
         {
             Progress.Report(++ProgressCount);
 
-            // パレットが読み込み済みの場合はスキップ
-            if (PalletName == palletName) return true;
+            // 設定が変更された場合はキャッシュをクリア
+            if (Special != cbSpecial.Checked || Discontinue != cbDiscontinue.Checked)
+            {
+                ColorCashe.Clear();
+            }
+            Special = cbSpecial.Checked;
+            Discontinue = cbDiscontinue.Checked;
 
-            string fileName = PalletMap[palletName];
+            // パレットが読み込み済みの場合はスキップ
+            if (PaletteName == paletteName) return true;
+
+            string fileName = PaletteMap[paletteName];
             try
             {
                 ColorCashe.Clear();
-                Pallet.Clear();
+                Palette.Clear();
                 using (StreamReader sr = new StreamReader(fileName))
                 {
                     sr.ReadLine();
@@ -303,14 +321,28 @@ namespace BeadsImageConverter
                         Cancel.Token.ThrowIfCancellationRequested();
                         string line = sr.ReadLine();
                         string[] value = line.Split(new char[] { ',' });
-                        string name = value[0];
-                        byte r = byte.Parse(value[1]);
-                        byte g = byte.Parse(value[2]);
-                        byte b = byte.Parse(value[3]);
-                        Pallet.Add(new Bead(Pallet.Count + 1, name, r, g, b));
+                        if (value.Length == 4)
+                        {
+                            string name = value[0];
+                            byte r = byte.Parse(value[1]);
+                            byte g = byte.Parse(value[2]);
+                            byte b = byte.Parse(value[3]);
+                            Palette.Add(new Bead(Palette.Count + 1, name, r, g, b));
+                        }
+                        else if (value.Length == 7)
+                        {
+                            string no = value[0];
+                            string name = value[1];
+                            byte r = byte.Parse(value[2]);
+                            byte g = byte.Parse(value[3]);
+                            byte b = byte.Parse(value[4]);
+                            byte sp = byte.Parse(value[5]);
+                            byte dc = byte.Parse(value[6]);
+                            Palette.Add(new Bead(no, name, r, g, b, sp, dc));
+                        }
                     }
                 }
-                PalletName = palletName;
+                PaletteName = paletteName;
             }
             catch (IOException ex)
             {
@@ -370,11 +402,11 @@ namespace BeadsImageConverter
             // 画像情報
             info.Cell(3, 2).SetValue(FileName);
             info.Cell(4, 2).SetValue(string.Format("{0} x {1}", Image.Width, Image.Height));
-            info.Cell(5, 2).SetValue(PalletName);
+            info.Cell(5, 2).SetValue(PaletteName);
 
             // ビーズ情報
             int i = 0;
-            Pallet.Where(x => x.Count > 0).ForEach((bead) =>
+            Palette.Where(x => x.Count > 0).ForEach(bead =>
             {
                 int row = 8 + i++;
                 info.Cell(row, 1).SetValue(bead.No)
@@ -469,10 +501,11 @@ namespace BeadsImageConverter
                         if (a == 0) continue;
 
                         int colorIdx = getNearestColorIndex(r, g, b);
-                        Bead bead = Pallet[colorIdx];
+                        Bead bead = Palette[colorIdx];
                         bead.Count++;
-                        cell.SetValue(colorIdx + 1)
+                        cell.SetValue(bead.No)
                             .Style.Fill.SetBackgroundColor(bead.Color)
+                            .Font.SetFontSize(10)
                             .Font.SetFontColor(bead.FontColor)
                             .Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center)
                             .Alignment.SetVertical(XLAlignmentVerticalValues.Center);
@@ -510,7 +543,18 @@ namespace BeadsImageConverter
             else
             {
                 double min = double.MaxValue;
-                Pallet.Select((bead, index) => new { bead, index }).ForEach((e) =>
+                var select = Palette.Select((bead, index) => new { bead, index });
+                // 特殊ビーズを除外
+                if (!Special)
+                {
+                    select = select.Where(x => !x.bead.Special);
+                }
+                // 廃盤ビーズを除外
+                if (!Discontinue)
+                {
+                    select = select.Where(x => !x.bead.Discontinue);
+                }
+                select.ForEach((e) =>
                 {
                     double diff = CIELAB.Difference(CIELAB.FromColor(e.bead.Color.Color), CIELAB.FromColor(color));
                     if (diff < min)
@@ -576,7 +620,7 @@ namespace BeadsImageConverter
                 .Border.SetOutsideBorder(XLBorderStyleValues.Dashed)
                 .Border.SetInsideBorder(XLBorderStyleValues.Dashed)
                 .Fill.SetBackgroundColor(XLColor.LightGray);
-            result.Cell(3, 2).SetValue(PalletName);
+            result.Cell(3, 2).SetValue(PaletteName);
 
             // ビーズ情報
             result.Cell(5, 1).SetValue("No");
@@ -586,7 +630,7 @@ namespace BeadsImageConverter
                 .Fill.SetBackgroundColor(XLColor.LightGray);
 
             int i = 0;
-            Pallet.Where((x) => x.Total > 0).ForEach((bead) =>
+            Palette.Where((x) => x.Total > 0).ForEach((bead) =>
             {
                 int row = 6 + i++;
                 result.Cell(row, 1).SetValue(bead.No)
