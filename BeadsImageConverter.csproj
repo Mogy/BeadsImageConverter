@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Bead.cs" />
+    <Compile Include="CIEDE2K.cs" />
     <Compile Include="CIELAB.cs" />
     <Compile Include="FormMain.cs">
       <SubType>Form</SubType>

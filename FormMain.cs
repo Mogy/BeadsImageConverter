@@ -556,7 +556,7 @@ namespace BeadsImageConverter
                 }
                 select.ForEach((e) =>
                 {
-                    double diff = CIELAB.Difference(CIELAB.FromColor(e.bead.Color.Color), CIELAB.FromColor(color));
+                    double diff = CIEDE2K.Difference(e.bead.Color.Color, color);
                     if (diff < min)
                     {
                         min = diff;
