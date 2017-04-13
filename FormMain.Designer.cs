@@ -86,6 +86,7 @@
             this.cbPalette.Name = "cbPalette";
             this.cbPalette.Size = new System.Drawing.Size(215, 20);
             this.cbPalette.TabIndex = 4;
+            this.cbPalette.SelectedIndexChanged += new System.EventHandler(this.cbPalette_SelectedIndexChanged);
             // 
             // lblPalette
             // 
@@ -126,6 +127,7 @@
             this.cbSpecial.TabIndex = 8;
             this.cbSpecial.Text = "特殊ビーズを含める";
             this.cbSpecial.UseVisualStyleBackColor = true;
+            this.cbSpecial.CheckedChanged += new System.EventHandler(this.cbSpecial_CheckedChanged);
             // 
             // cbDiscontinue
             // 
@@ -136,10 +138,11 @@
             this.cbDiscontinue.TabIndex = 9;
             this.cbDiscontinue.Text = "廃盤ビーズを含める";
             this.cbDiscontinue.UseVisualStyleBackColor = true;
+            this.cbDiscontinue.CheckedChanged += new System.EventHandler(this.cbDiscontinue_CheckedChanged);
             // 
             // FormMain
             // 
-            this.ClientSize = new System.Drawing.Size(284, 343);
+            this.ClientSize = new System.Drawing.Size(284, 342);
             this.Controls.Add(this.cbDiscontinue);
             this.Controls.Add(this.cbSpecial);
             this.Controls.Add(this.cbConvert);

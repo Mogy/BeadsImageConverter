@@ -37,6 +37,9 @@
             this.btnClear = new System.Windows.Forms.Button();
             this.btnAdd = new System.Windows.Forms.Button();
             this.btnDelete = new System.Windows.Forms.Button();
+            this.chPallete = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chSpecial = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chDiscontinue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.SuspendLayout();
             // 
             // lvImages
@@ -47,16 +50,21 @@
             this.lvImages.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
             this.chThumb,
             this.chFileName,
-            this.chPath});
+            this.chPath,
+            this.chPallete,
+            this.chSpecial,
+            this.chDiscontinue});
             this.lvImages.FullRowSelect = true;
             this.lvImages.GridLines = true;
+            this.lvImages.HideSelection = false;
             this.lvImages.Location = new System.Drawing.Point(12, 12);
             this.lvImages.Name = "lvImages";
-            this.lvImages.Size = new System.Drawing.Size(444, 242);
+            this.lvImages.Size = new System.Drawing.Size(655, 289);
             this.lvImages.TabIndex = 0;
             this.lvImages.UseCompatibleStateImageBehavior = false;
             this.lvImages.View = System.Windows.Forms.View.Details;
             this.lvImages.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lvImages_ItemSelectionChanged);
+            this.lvImages.SelectedIndexChanged += new System.EventHandler(this.lvImages_SelectedIndexChanged);
             // 
             // chThumb
             // 
@@ -71,7 +79,7 @@
             // chPath
             // 
             this.chPath.Text = "パス";
-            this.chPath.Width = 300;
+            this.chPath.Width = 250;
             // 
             // ilThumbnail
             // 
@@ -82,7 +90,7 @@
             // btnClear
             // 
             this.btnClear.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left)));
-            this.btnClear.Location = new System.Drawing.Point(12, 260);
+            this.btnClear.Location = new System.Drawing.Point(12, 307);
             this.btnClear.Name = "btnClear";
             this.btnClear.Size = new System.Drawing.Size(75, 23);
             this.btnClear.TabIndex = 1;
@@ -93,7 +101,7 @@
             // btnAdd
             // 
             this.btnAdd.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnAdd.Location = new System.Drawing.Point(300, 260);
+            this.btnAdd.Location = new System.Drawing.Point(511, 307);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(75, 23);
             this.btnAdd.TabIndex = 2;
@@ -104,7 +112,7 @@
             // btnDelete
             // 
             this.btnDelete.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnDelete.Location = new System.Drawing.Point(381, 260);
+            this.btnDelete.Location = new System.Drawing.Point(592, 307);
             this.btnDelete.Name = "btnDelete";
             this.btnDelete.Size = new System.Drawing.Size(75, 23);
             this.btnDelete.TabIndex = 3;
@@ -112,12 +120,27 @@
             this.btnDelete.UseVisualStyleBackColor = true;
             this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
             // 
+            // chPallete
+            // 
+            this.chPallete.Text = "パレット名";
+            this.chPallete.Width = 120;
+            // 
+            // chSpecial
+            // 
+            this.chSpecial.Text = "特殊ビーズ";
+            this.chSpecial.Width = 70;
+            // 
+            // chDiscontinue
+            // 
+            this.chDiscontinue.Text = "廃盤ビーズ";
+            this.chDiscontinue.Width = 70;
+            // 
             // FormImages
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(468, 295);
+            this.ClientSize = new System.Drawing.Size(679, 342);
             this.ControlBox = false;
             this.Controls.Add(this.btnDelete);
             this.Controls.Add(this.btnAdd);
@@ -128,7 +151,7 @@
             this.Name = "FormImages";
             this.ShowIcon = false;
             this.ShowInTaskbar = false;
-            this.Text = "画像";
+            this.Text = "画像一覧";
             this.Shown += new System.EventHandler(this.FormImages_Shown);
             this.ResumeLayout(false);
 
@@ -144,5 +167,8 @@
         private System.Windows.Forms.Button btnClear;
         private System.Windows.Forms.Button btnAdd;
         private System.Windows.Forms.Button btnDelete;
+        private System.Windows.Forms.ColumnHeader chPallete;
+        private System.Windows.Forms.ColumnHeader chSpecial;
+        private System.Windows.Forms.ColumnHeader chDiscontinue;
     }
 }

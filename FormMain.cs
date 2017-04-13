@@ -127,6 +127,21 @@ namespace BeadsImageConverter
             }
         }
 
+        private void cbPalette_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            FormImages.setPalette(cbPalette.Text);
+        }
+
+        private void cbSpecial_CheckedChanged(object sender, EventArgs e)
+        {
+            FormImages.setSpecial(cbSpecial.Checked);
+        }
+
+        private void cbDiscontinue_CheckedChanged(object sender, EventArgs e)
+        {
+            FormImages.setDiscontinue(cbDiscontinue.Checked);
+        }
+
         /// <summary>
         ///     パレット名一覧を読み込む
         /// </summary>
@@ -213,7 +228,7 @@ namespace BeadsImageConverter
             {
                 using (Bitmap image = new Bitmap(fileName))
                 {
-                    FormImages.AddImage(fileName, image);
+                    FormImages.AddItem(fileName, image, cbPalette.Text, cbSpecial.Checked, cbDiscontinue.Checked);
                     loaded = fileName;
                 }
             }
@@ -260,11 +275,27 @@ namespace BeadsImageConverter
         }
 
         /// <summary>
+        ///     設定を反映する
+        /// </summary>
+        /// <param name="fileName">ファイルパス</param>
+        /// <param name="palette">パレット名</param>
+        /// <param name="special">特殊ビーズ</param>
+        /// <param name="discontinue">廃盤ビーズ</param>
+        public void setState(string fileName, string palette, bool special, bool discontinue)
+        {
+            cbPalette.SelectedItem = palette;
+            cbSpecial.Checked = special;
+            cbDiscontinue.Checked = discontinue;
+            showPreview(fileName);
+        }
+
+        /// <summary>
         ///     プレビューを表示する
         /// </summary>
         /// <param name="fileName">ファイルパス</param>
-        public void showPreview(string fileName)
+        private void showPreview(string fileName)
         {
+            if (fileName == FileName) return;
             FileName = fileName;
             lbLoad.Visible = false;
             Bitmap bitmap = new Bitmap(pbImage.Width, pbImage.Height);
