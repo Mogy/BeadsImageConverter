@@ -19,10 +19,10 @@ namespace BeadsImageConverter
 {
     public partial class FormMain : Form
     {
-        private const int ERROR_CANCEL = 0;
-        private const int ERROR_LOAD_PALETTE = -1;
-        private const int ERROR_CREATE_WORKBOOK = -2;
-        private const int ERROR_CREATE_RESULT = -3;
+        public const int ERROR_CANCEL = 0;
+        public const int ERROR_LOAD_PALETTE = -1;
+        public const int ERROR_CREATE_WORKBOOK = -2;
+        public const int ERROR_CREATE_RESULT = -3;
 
         private string FileName;
         private string PaletteName;
@@ -32,7 +32,7 @@ namespace BeadsImageConverter
         private Dictionary<string, string> PaletteMap;
         private Dictionary<Color, int> ColorCashe;
         private List<Bead> Palette;
-        private IProgress<int> Progress;
+        private IProgress<int> Progress, MainProgress;
         private int ProgressCount;
         private CancellationTokenSource Cancel;
         private FormImages FormImages;
@@ -43,7 +43,8 @@ namespace BeadsImageConverter
             PaletteMap = new Dictionary<string, string>();
             ColorCashe = new Dictionary<Color, int>();
             Palette = new List<Bead>();
-            Progress = new Progress<int>(new Action<int>(showProgress));
+            MainProgress = new Progress<int>(new Action<int>(showProgress));
+            Progress = MainProgress;
 
             // タイトルの設定
             AssemblyName name = Assembly.GetExecutingAssembly().GetName();
@@ -59,7 +60,6 @@ namespace BeadsImageConverter
 
             // D&Dの設定
             pbImage.AllowDrop = true;
-            FormImages.Click += pbImage_Click;
             FormImages.DragEnter += pbImage_DragEnter;
             FormImages.DragDrop += pbImage_DragDrop;
 
@@ -102,28 +102,19 @@ namespace BeadsImageConverter
             loadImage(fileNames);
         }
 
-        private void cbConvert_CheckedChanged(object sender, EventArgs e)
+        private async void cbConvert_CheckedChanged(object sender, EventArgs e)
         {
             if (cbConvert.Checked)
             {
                 cbConvert.Text = "キャンセル";
-                pbImage.Enabled = false;
-                cbPalette.Enabled = false;
-                cbSpecial.Enabled = false;
-                cbDiscontinue.Enabled = false;
-                convert(cbPalette.Text);
+                setEnabled(false);
+                await convert(MainProgress, cbPalette.Text);
             }
             else
             {
                 cbConvert.Text = "変換";
-                pbImage.Enabled = true;
-                cbPalette.Enabled = true;
-                cbSpecial.Enabled = true;
-                cbDiscontinue.Enabled = true;
-                if (Cancel != null)
-                {
-                    Cancel.Cancel();
-                }
+                setEnabled(true);
+                cancel();
             }
         }
 
@@ -228,7 +219,7 @@ namespace BeadsImageConverter
             {
                 using (Bitmap image = new Bitmap(fileName))
                 {
-                    FormImages.AddItem(fileName, image, cbPalette.Text, cbSpecial.Checked, cbDiscontinue.Checked);
+                    FormImages.addItem(fileName, image, cbPalette.Text, cbSpecial.Checked, cbDiscontinue.Checked);
                     loaded = fileName;
                 }
             }
@@ -236,7 +227,29 @@ namespace BeadsImageConverter
             {
                 showPreview(loaded);
             }
+        }
 
+        public void clearImage()
+        {
+            pbImage.Image = null;
+            lbLoad.Visible = true;
+        }
+
+        /// <summary>
+        ///     プログレスバーを更新する
+        /// </summary>
+        /// <param name="progress">更新値</param>
+        public void setProgress(int progress)
+        {
+            if (progress < pbWork.Minimum)
+            {
+                progress = pbWork.Minimum;
+            }
+            if (progress > pbWork.Maximum)
+            {
+                progress = pbWork.Maximum;
+            }
+            pbWork.Value = progress;
         }
 
         /// <summary>
@@ -247,7 +260,7 @@ namespace BeadsImageConverter
         {
             if (0 < progress && progress <= pbWork.Maximum)
             {
-                pbWork.Value = progress;
+                setProgress(progress);
             }
             else
             {
@@ -269,9 +282,10 @@ namespace BeadsImageConverter
                         MessageBox.Show(this, "変換が完了しました", "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         break;
                 }
-                pbWork.Value = 0;
+                setProgress(0);
                 cbConvert.Checked = false;
             }
+            FormImages.showProgress(progress);
         }
 
         /// <summary>
@@ -307,15 +321,40 @@ namespace BeadsImageConverter
                 g.DrawImage(Image, 0, 0, bitmap.Width, bitmap.Height);
             }
             pbImage.Image = bitmap;
-            cbConvert.Enabled = cbPalette.Enabled;
+            cbConvert.Enabled = !Enabled || cbPalette.Enabled;
+        }
+
+        /// <summary>
+        ///     コントロールの有効状態を設定する
+        /// </summary>
+        /// <param name="enabled">有効状態</param>
+        private void setEnabled(bool enabled)
+        {
+            FormImages.Enabled = enabled;
+            pbImage.Enabled = enabled;
+            cbPalette.Enabled = enabled;
+            cbSpecial.Enabled = enabled;
+            cbDiscontinue.Enabled = enabled;
+        }
+
+        /// <summary>
+        ///     変換をキャンセルする
+        /// </summary>
+        public void cancel()
+        {
+            if (Cancel != null)
+            {
+                Cancel.Cancel();
+            }
         }
 
         /// <summary>
         ///     画像ファイルの変換を行なう
         /// </summary>
         /// <param name="paletteName">パレット名</param>
-        private async void convert(string paletteName)
+        public async Task convert(IProgress<int> progress, string paletteName)
         {
+            Progress = progress;
             ProgressCount = 0;
             await Task.Run(() =>
             {

@@ -33,13 +33,15 @@
             this.chThumb = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chFileName = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chPath = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chPallete = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chSpecial = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chDiscontinue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.ilThumbnail = new System.Windows.Forms.ImageList(this.components);
             this.btnClear = new System.Windows.Forms.Button();
             this.btnAdd = new System.Windows.Forms.Button();
             this.btnDelete = new System.Windows.Forms.Button();
-            this.chPallete = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.chSpecial = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
-            this.chDiscontinue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.cbConvert = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // lvImages
@@ -53,13 +55,14 @@
             this.chPath,
             this.chPallete,
             this.chSpecial,
-            this.chDiscontinue});
+            this.chDiscontinue,
+            this.chResult});
             this.lvImages.FullRowSelect = true;
             this.lvImages.GridLines = true;
             this.lvImages.HideSelection = false;
             this.lvImages.Location = new System.Drawing.Point(12, 12);
             this.lvImages.Name = "lvImages";
-            this.lvImages.Size = new System.Drawing.Size(655, 289);
+            this.lvImages.Size = new System.Drawing.Size(715, 289);
             this.lvImages.TabIndex = 0;
             this.lvImages.UseCompatibleStateImageBehavior = false;
             this.lvImages.View = System.Windows.Forms.View.Details;
@@ -81,6 +84,23 @@
             this.chPath.Text = "パス";
             this.chPath.Width = 250;
             // 
+            // chPallete
+            // 
+            this.chPallete.Text = "パレット名";
+            this.chPallete.Width = 120;
+            // 
+            // chSpecial
+            // 
+            this.chSpecial.Text = "特殊ビーズ";
+            this.chSpecial.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.chSpecial.Width = 70;
+            // 
+            // chDiscontinue
+            // 
+            this.chDiscontinue.Text = "廃盤ビーズ";
+            this.chDiscontinue.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.chDiscontinue.Width = 70;
+            // 
             // ilThumbnail
             // 
             this.ilThumbnail.ColorDepth = System.Windows.Forms.ColorDepth.Depth32Bit;
@@ -101,7 +121,7 @@
             // btnAdd
             // 
             this.btnAdd.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnAdd.Location = new System.Drawing.Point(511, 307);
+            this.btnAdd.Location = new System.Drawing.Point(490, 307);
             this.btnAdd.Name = "btnAdd";
             this.btnAdd.Size = new System.Drawing.Size(75, 23);
             this.btnAdd.TabIndex = 2;
@@ -112,7 +132,7 @@
             // btnDelete
             // 
             this.btnDelete.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.btnDelete.Location = new System.Drawing.Point(592, 307);
+            this.btnDelete.Location = new System.Drawing.Point(571, 307);
             this.btnDelete.Name = "btnDelete";
             this.btnDelete.Size = new System.Drawing.Size(75, 23);
             this.btnDelete.TabIndex = 3;
@@ -120,28 +140,33 @@
             this.btnDelete.UseVisualStyleBackColor = true;
             this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
             // 
-            // chPallete
+            // chResult
             // 
-            this.chPallete.Text = "パレット名";
-            this.chPallete.Width = 120;
+            this.chResult.Text = "結果";
+            this.chResult.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
-            // chSpecial
+            // cbConvert
             // 
-            this.chSpecial.Text = "特殊ビーズ";
-            this.chSpecial.Width = 70;
-            // 
-            // chDiscontinue
-            // 
-            this.chDiscontinue.Text = "廃盤ビーズ";
-            this.chDiscontinue.Width = 70;
+            this.cbConvert.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.cbConvert.Appearance = System.Windows.Forms.Appearance.Button;
+            this.cbConvert.Enabled = false;
+            this.cbConvert.Location = new System.Drawing.Point(656, 307);
+            this.cbConvert.Name = "cbConvert";
+            this.cbConvert.Size = new System.Drawing.Size(71, 22);
+            this.cbConvert.TabIndex = 8;
+            this.cbConvert.Text = "一括変換";
+            this.cbConvert.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.cbConvert.UseVisualStyleBackColor = true;
+            this.cbConvert.CheckedChanged += new System.EventHandler(this.cbConvert_CheckedChanged);
             // 
             // FormImages
             // 
             this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(679, 342);
+            this.ClientSize = new System.Drawing.Size(739, 342);
             this.ControlBox = false;
+            this.Controls.Add(this.cbConvert);
             this.Controls.Add(this.btnDelete);
             this.Controls.Add(this.btnAdd);
             this.Controls.Add(this.btnClear);
@@ -170,5 +195,7 @@
         private System.Windows.Forms.ColumnHeader chPallete;
         private System.Windows.Forms.ColumnHeader chSpecial;
         private System.Windows.Forms.ColumnHeader chDiscontinue;
+        private System.Windows.Forms.ColumnHeader chResult;
+        private System.Windows.Forms.CheckBox cbConvert;
     }
 }

@@ -20,21 +20,25 @@ namespace BeadsImageConverter
         private const int PALETTE = 3;
         private const int SPECIAL = 4;
         private const int DISCONTINUE = 5;
+        private const int RESULT = 6;
 
-        FormMain Main;
+        FormMain FormMain;
         List<string> FileNames;
+        IProgress<int> ImageProgress;
+        bool Cancel;
         int FileCount { get { return lvImages.Items.Count; } }
 
         public FormImages()
         {
             InitializeComponent();
             FileNames = new List<string>();
+            ImageProgress = new Progress<int>(new Action<int>(showProgress));
             lvImages.SmallImageList = ilThumbnail;
         }
 
         private void FormImages_Shown(object sender, EventArgs e)
         {
-            Main = (FormMain)Owner;
+            FormMain = (FormMain)Owner;
         }
 
         private void btnClear_Click(object sender, EventArgs e)
@@ -42,11 +46,13 @@ namespace BeadsImageConverter
             ilThumbnail.Images.Clear();
             FileNames.Clear();
             lvImages.Items.Clear();
+            cbConvert.Enabled = lvImages.Items.Count > 0;
+            FormMain.clearImage();
         }
 
         private void btnAdd_Click(object sender, EventArgs e)
         {
-            Main.openImage();
+            FormMain.openImage();
         }
 
         private void btnDelete_Click(object sender, EventArgs e)
@@ -56,6 +62,21 @@ namespace BeadsImageConverter
                 ilThumbnail.Images.RemoveAt(lvImages.Items.IndexOf(item));
                 FileNames.Remove(item.SubItems[PATH].Text);
                 lvImages.Items.Remove(item);
+            }
+            // インデックスを再設定
+            for (int i = 0; i < lvImages.Items.Count; i++)
+            {
+                lvImages.Items[i].ImageIndex = i;
+            }
+            if (lvImages.Items.Count > 0)
+            {
+                cbConvert.Enabled = true;
+                lvImages.Items[0].Selected = true;
+            }
+            else
+            {
+                cbConvert.Enabled = false;
+                FormMain.clearImage();
             }
         }
 
@@ -75,9 +96,55 @@ namespace BeadsImageConverter
             }
         }
 
-        internal string Bool2String(bool b) { return b ? "Yes" : "No"; }
+        private async void cbConvert_CheckedChanged(object sender, EventArgs e)
+        {
+            if (cbConvert.Checked)
+            {
+                cbConvert.Text = "キャンセル";
+                setEnabled(false);
+                lvImages.SelectedItems.Clear();
+                Cancel = false;
+                foreach (ListViewItem item in lvImages.Items)
+                {
+                    item.Selected = true;
+                    await FormMain.convert(ImageProgress, item.SubItems[PALETTE].Text);
+                    item.Selected = false;
+                    if (Cancel) break;
+                }
+                FormMain.setProgress(0);
+                cbConvert.Checked = false;
+                if (Cancel)
+                {
+                    MessageBox.Show(this, "変換をキャンセルしました", "キャンセル", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show(this, "変換が完了しました", "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+            }
+            else
+            {
+                cbConvert.Text = "一括変換";
+                setEnabled(true);
+                FormMain.cancel();
+            }
+        }
 
-        internal bool String2Bool(string s) { return s == "Yes"; }
+        internal string bool2String(bool b) { return b ? "Yes" : "No"; }
+
+        internal bool string2Bool(string s) { return s == "Yes"; }
+
+        /// <summary>
+        ///     コントロールの有効状態を設定する
+        /// </summary>
+        /// <param name="enabled">有効状態</param>
+        private void setEnabled(bool enabled)
+        {
+            FormMain.Enabled = enabled;
+            lvImages.Enabled = enabled;
+            btnClear.Enabled = enabled;
+            btnAdd.Enabled = enabled;
+        }
 
         /// <summary>
         ///     状態を反映する
@@ -87,9 +154,9 @@ namespace BeadsImageConverter
         {
             string fileName = sub[PATH].Text;
             string palette = sub[PALETTE].Text;
-            bool special = String2Bool(sub[SPECIAL].Text);
-            bool discontinue = String2Bool(sub[DISCONTINUE].Text);
-            Main.setState(fileName, palette, special, discontinue);
+            bool special = string2Bool(sub[SPECIAL].Text);
+            bool discontinue = string2Bool(sub[DISCONTINUE].Text);
+            FormMain.setState(fileName, palette, special, discontinue);
         }
 
         /// <summary>
@@ -100,7 +167,7 @@ namespace BeadsImageConverter
         /// <param name="palette">パレット名</param>
         /// <param name="special">特殊ビーズ</param>
         /// <param name="discontinue">廃盤ビーズ</param>
-        public void AddItem(string fileName, Image image, string palette, bool special, bool discontinue)
+        public void addItem(string fileName, Image image, string palette, bool special, bool discontinue)
         {
             // 存在チェック
             int idx = FileNames.IndexOf(fileName);
@@ -116,12 +183,15 @@ namespace BeadsImageConverter
             item.SubItems.Add(Path.GetFileName(fileName));
             item.SubItems.Add(fileName);
             item.SubItems.Add(palette);
-            item.SubItems.Add(Bool2String(special));
-            item.SubItems.Add(Bool2String(discontinue));
-            item.ImageIndex = lvImages.SmallImageList.Images.Count;
+            item.SubItems.Add(bool2String(special));
+            item.SubItems.Add(bool2String(discontinue));
+            item.SubItems.Add("");
+            item.UseItemStyleForSubItems = false;
+            item.ImageIndex = lvImages.Items.Count;
             item.Selected = true;
             lvImages.Items.Add(item);
             lvImages.SmallImageList.Images.Add(createThumbnailImage(image));
+            cbConvert.Enabled = lvImages.Items.Count > 0;
         }
 
         /// <summary>
@@ -163,7 +233,7 @@ namespace BeadsImageConverter
         {
             foreach (ListViewItem item in lvImages.SelectedItems)
             {
-                item.SubItems[SPECIAL].Text = Bool2String(special);
+                item.SubItems[SPECIAL].Text = bool2String(special);
             }
         }
 
@@ -175,7 +245,34 @@ namespace BeadsImageConverter
         {
             foreach (ListViewItem item in lvImages.SelectedItems)
             {
-                item.SubItems[DISCONTINUE].Text = Bool2String(discontinue);
+                item.SubItems[DISCONTINUE].Text = bool2String(discontinue);
+            }
+        }
+
+        /// <summary>
+        ///     プログレスバーを更新する
+        /// </summary>
+        /// <param name="progress">更新値</param>
+        public void showProgress(int progress)
+        {
+            if (0 < progress && progress <= 100)
+            {
+                lvImages.SelectedItems[0].SubItems[RESULT].Text = progress + "%";
+                lvImages.SelectedItems[0].SubItems[RESULT].ForeColor = Color.DarkBlue;
+            }
+            else if (progress <= 0)
+            {
+                lvImages.SelectedItems[0].SubItems[RESULT].Text = "NG";
+                lvImages.SelectedItems[0].SubItems[RESULT].ForeColor = Color.Red;
+                if (progress == FormMain.ERROR_CANCEL)
+                {
+                    Cancel = true;
+                }
+            }
+            else
+            {
+                lvImages.SelectedItems[0].SubItems[RESULT].Text = "OK";
+                lvImages.SelectedItems[0].SubItems[RESULT].ForeColor = Color.Green;
             }
         }
 
