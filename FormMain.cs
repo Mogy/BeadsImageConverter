@@ -35,6 +35,7 @@ namespace BeadsImageConverter
         private IProgress<int> Progress;
         private int ProgressCount;
         private CancellationTokenSource Cancel;
+        private FormImages FormImages;
 
         public FormMain()
         {
@@ -43,52 +44,62 @@ namespace BeadsImageConverter
             ColorCashe = new Dictionary<Color, int>();
             Palette = new List<Bead>();
             Progress = new Progress<int>(new Action<int>(showProgress));
+
+            // タイトルの設定
             AssemblyName name = Assembly.GetExecutingAssembly().GetName();
             Text = string.Format("{0} v{1}", name.Name, name.Version);
+
+            // 画像一覧フォームの表示
+            RectangleToScreen(ClientRectangle);
+            FormImages = new FormImages();
+            FormImages.Left = DesktopBounds.Right;
+            FormImages.Top = DesktopBounds.Top;
+            FormImages.StartPosition = FormStartPosition.Manual;
+            FormImages.Show(this);
+
+            // D&Dの設定
             pbImage.AllowDrop = true;
+            FormImages.Click += pbImage_Click;
+            FormImages.DragEnter += pbImage_DragEnter;
+            FormImages.DragDrop += pbImage_DragDrop;
+
+            // パレット一覧の読み込み
             loadPaletteName();
         }
 
         private void pbImage_Click(object sender, EventArgs e)
         {
-            loadImage();
+            openImage();
         }
 
         private void pbImage_DragEnter(object sender, DragEventArgs e)
         {
-            // 単一の画像ファイルのみD&Dを許可する
+            // 画像ファイルのみD&Dを許可する
             if (e.Data.GetDataPresent(DataFormats.FileDrop))
             {
-                string[] fileName = (string[])e.Data.GetData(DataFormats.FileDrop);
-                string ext = Path.GetExtension(fileName[0]);
-                if (fileName.Length == 1 && (ext == ".png" || ext == ".bmp" || ext == ".gif"))
+                string[] fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (string fileName in fileNames)
                 {
-                    e.Effect = DragDropEffects.Move;
-                    return;
+                    string ext = Path.GetExtension(fileName);
+                    if (ext != ".png" && ext != ".bmp" && ext != ".gif")
+                    {
+                        e.Effect = DragDropEffects.None;
+                        return;
+                    }
                 }
+                e.Effect = DragDropEffects.Move;
             }
-            e.Effect = DragDropEffects.None;
+            else
+            {
+                e.Effect = DragDropEffects.None;
+
+            }
         }
 
         private void pbImage_DragDrop(object sender, DragEventArgs e)
         {
-            string[] fileName = (string[])e.Data.GetData(DataFormats.FileDrop);
-            showPreview(fileName[0]);
-        }
-
-        private void lbLoad_Click(object sender, EventArgs e)
-        {
-            pbImage_Click(sender, e);
-        }
-
-        private void lbLoad_DragEnter(object sender, DragEventArgs e)
-        {
-            pbImage_DragEnter(sender, e);
-        }
-
-        private void lbLoad_DragDrop(object sender, DragEventArgs e)
-        {
-            pbImage_DragDrop(sender, e);
+            string[] fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
+            loadImage(fileNames);
         }
 
         private void cbConvert_CheckedChanged(object sender, EventArgs e)
@@ -171,23 +182,46 @@ namespace BeadsImageConverter
         }
 
         /// <summary>
-        ///     画像ファイルを読み込む
+        ///     画像ファイルを開く
         /// </summary>
-        private void loadImage()
+        public void openImage()
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
             {
                 ofd.Filter = "画像 ファイル(*.bmp, *.png, *.gif)|*.bmp;*.png;*.gif";
                 ofd.FilterIndex = 2;
+                ofd.Multiselect = true;
                 if (FileName != null)
                 {
                     ofd.InitialDirectory = FileName;
                 }
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
-                    showPreview(ofd.FileName);
+                    loadImage(ofd.FileNames);
                 }
             }
+        }
+
+        /// <summary>
+        ///     画像ファイルを読み込む
+        /// </summary>
+        /// <param name="fileNames">ファイルパス</param>
+        private void loadImage(string[] fileNames)
+        {
+            string loaded = null;
+            foreach (string fileName in fileNames)
+            {
+                using (Bitmap image = new Bitmap(fileName))
+                {
+                    FormImages.AddImage(fileName, image);
+                    loaded = fileName;
+                }
+            }
+            if (loaded != null)
+            {
+                showPreview(loaded);
+            }
+
         }
 
         /// <summary>
@@ -229,14 +263,8 @@ namespace BeadsImageConverter
         ///     プレビューを表示する
         /// </summary>
         /// <param name="fileName">ファイルパス</param>
-        private void showPreview(string fileName)
+        public void showPreview(string fileName)
         {
-            if (!File.Exists(fileName))
-            {
-                MessageBox.Show("ファイルが存在しません", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Hand);
-                return;
-            }
-
             FileName = fileName;
             lbLoad.Visible = false;
             Bitmap bitmap = new Bitmap(pbImage.Width, pbImage.Height);
@@ -651,5 +679,6 @@ namespace BeadsImageConverter
             result.Columns(2, 2).Width = 23.57;
             result.Rows(1, 1).Height = 26.25;
         }
+
     }
 }

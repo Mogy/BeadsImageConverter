@@ -66,6 +66,7 @@
             // 
             // lbLoad
             // 
+            this.lbLoad.AllowDrop = true;
             this.lbLoad.AutoSize = true;
             this.lbLoad.Location = new System.Drawing.Point(55, 121);
             this.lbLoad.Name = "lbLoad";
@@ -73,9 +74,9 @@
             this.lbLoad.TabIndex = 2;
             this.lbLoad.Text = "クリックして画像ファイルを読み込むか\r\n画像ファイルをD&&Dして下さい";
             this.lbLoad.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
-            this.lbLoad.Click += new System.EventHandler(this.lbLoad_Click);
-            this.lbLoad.DragDrop += new System.Windows.Forms.DragEventHandler(this.lbLoad_DragDrop);
-            this.lbLoad.DragEnter += new System.Windows.Forms.DragEventHandler(this.lbLoad_DragEnter);
+            this.lbLoad.Click += new System.EventHandler(this.pbImage_Click);
+            this.lbLoad.DragDrop += new System.Windows.Forms.DragEventHandler(this.pbImage_DragDrop);
+            this.lbLoad.DragEnter += new System.Windows.Forms.DragEventHandler(this.pbImage_DragEnter);
             // 
             // cbPalette
             // 

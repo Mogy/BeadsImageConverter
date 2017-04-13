@@ -57,6 +57,12 @@
     <Compile Include="Bead.cs" />
     <Compile Include="CIEDE2K.cs" />
     <Compile Include="CIELAB.cs" />
+    <Compile Include="FormImages.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FormImages.Designer.cs">
+      <DependentUpon>FormImages.cs</DependentUpon>
+    </Compile>
     <Compile Include="FormMain.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -65,6 +71,9 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="FormImages.resx">
+      <DependentUpon>FormImages.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="FormMain.resx">
       <DependentUpon>FormMain.cs</DependentUpon>
     </EmbeddedResource>
