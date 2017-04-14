@@ -36,16 +36,17 @@
             this.chPallete = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chSpecial = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.chDiscontinue = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
+            this.chResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.ilThumbnail = new System.Windows.Forms.ImageList(this.components);
             this.btnClear = new System.Windows.Forms.Button();
             this.btnAdd = new System.Windows.Forms.Button();
             this.btnDelete = new System.Windows.Forms.Button();
-            this.chResult = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.cbConvert = new System.Windows.Forms.CheckBox();
             this.SuspendLayout();
             // 
             // lvImages
             // 
+            this.lvImages.AllowDrop = true;
             this.lvImages.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
@@ -68,6 +69,8 @@
             this.lvImages.View = System.Windows.Forms.View.Details;
             this.lvImages.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.lvImages_ItemSelectionChanged);
             this.lvImages.SelectedIndexChanged += new System.EventHandler(this.lvImages_SelectedIndexChanged);
+            this.lvImages.DragDrop += new System.Windows.Forms.DragEventHandler(this.lvImages_DragDrop);
+            this.lvImages.DragEnter += new System.Windows.Forms.DragEventHandler(this.lvImages_DragEnter);
             // 
             // chThumb
             // 
@@ -100,6 +103,11 @@
             this.chDiscontinue.Text = "廃盤ビーズ";
             this.chDiscontinue.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             this.chDiscontinue.Width = 70;
+            // 
+            // chResult
+            // 
+            this.chResult.Text = "結果";
+            this.chResult.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // ilThumbnail
             // 
@@ -139,11 +147,6 @@
             this.btnDelete.Text = "削除";
             this.btnDelete.UseVisualStyleBackColor = true;
             this.btnDelete.Click += new System.EventHandler(this.btnDelete_Click);
-            // 
-            // chResult
-            // 
-            this.chResult.Text = "結果";
-            this.chResult.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
             // 
             // cbConvert
             // 

@@ -60,8 +60,6 @@ namespace BeadsImageConverter
 
             // D&Dの設定
             pbImage.AllowDrop = true;
-            FormImages.DragEnter += pbImage_DragEnter;
-            FormImages.DragDrop += pbImage_DragDrop;
 
             // パレット一覧の読み込み
             loadPaletteName();
@@ -74,31 +72,13 @@ namespace BeadsImageConverter
 
         private void pbImage_DragEnter(object sender, DragEventArgs e)
         {
-            // 画像ファイルのみD&Dを許可する
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                string[] fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
-                foreach (string fileName in fileNames)
-                {
-                    string ext = Path.GetExtension(fileName);
-                    if (ext != ".png" && ext != ".bmp" && ext != ".gif")
-                    {
-                        e.Effect = DragDropEffects.None;
-                        return;
-                    }
-                }
-                e.Effect = DragDropEffects.Move;
-            }
-            else
-            {
-                e.Effect = DragDropEffects.None;
-
-            }
+            e.Effect = getDropEffect(e);
         }
 
         private void pbImage_DragDrop(object sender, DragEventArgs e)
         {
             string[] fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
+            FormImages.clearItem();
             loadImage(fileNames);
         }
 
@@ -131,6 +111,30 @@ namespace BeadsImageConverter
         private void cbDiscontinue_CheckedChanged(object sender, EventArgs e)
         {
             FormImages.setDiscontinue(cbDiscontinue.Checked);
+        }
+
+        /// <summary>
+        ///     ドロップエフェクトを取得する
+        /// </summary>
+        /// <param name="e">ドロップイベント</param>
+        /// <returns>ドロップエフェクト</returns>
+        public DragDropEffects getDropEffect(DragEventArgs e)
+        {
+            // 画像ファイルのみD&Dを許可する
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (string fileName in fileNames)
+                {
+                    string ext = Path.GetExtension(fileName);
+                    if (ext != ".png" && ext != ".bmp" && ext != ".gif")
+                    {
+                        return DragDropEffects.None;
+                    }
+                }
+                return DragDropEffects.Move;
+            }
+            return DragDropEffects.None;
         }
 
         /// <summary>
@@ -212,7 +216,7 @@ namespace BeadsImageConverter
         ///     画像ファイルを読み込む
         /// </summary>
         /// <param name="fileNames">ファイルパス</param>
-        private void loadImage(string[] fileNames)
+        public void loadImage(string[] fileNames)
         {
             string loaded = null;
             foreach (string fileName in fileNames)

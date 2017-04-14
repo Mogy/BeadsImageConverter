@@ -41,12 +41,25 @@ namespace BeadsImageConverter
             FormMain = (FormMain)Owner;
         }
 
+        private void lvImages_DragEnter(object sender, DragEventArgs e)
+        {
+            e.Effect = FormMain.getDropEffect(e);
+            // 移動をコピーに置き換える
+            if (e.Effect == DragDropEffects.Move) 
+            {
+                e.Effect = DragDropEffects.Copy;
+            }
+        }
+
+        private void lvImages_DragDrop(object sender, DragEventArgs e)
+        {
+            string[] fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
+            FormMain.loadImage(fileNames);
+        }
+
         private void btnClear_Click(object sender, EventArgs e)
         {
-            ilThumbnail.Images.Clear();
-            FileNames.Clear();
-            lvImages.Items.Clear();
-            cbConvert.Enabled = lvImages.Items.Count > 0;
+            clearItem();
             FormMain.clearImage();
         }
 
@@ -195,6 +208,17 @@ namespace BeadsImageConverter
         }
 
         /// <summary>
+        ///     全てのアイテムを削除する
+        /// </summary>
+        public void clearItem()
+        {
+            ilThumbnail.Images.Clear();
+            FileNames.Clear();
+            lvImages.Items.Clear();
+            cbConvert.Enabled = lvImages.Items.Count > 0;
+        }
+
+        /// <summary>
         ///     サムネイル画像を作成する
         /// </summary>
         /// <param name="image">元画像</param>
@@ -255,6 +279,7 @@ namespace BeadsImageConverter
         /// <param name="progress">更新値</param>
         public void showProgress(int progress)
         {
+            if (lvImages.SelectedItems.Count == 0) return;
             if (0 < progress && progress <= 100)
             {
                 lvImages.SelectedItems[0].SubItems[RESULT].Text = progress + "%";
