@@ -19,10 +19,10 @@ namespace BeadsImageConverter
 {
     public partial class FormMain : Form
     {
-        private const int ERROR_CANCEL = 0;
-        private const int ERROR_LOAD_PALETTE = -1;
-        private const int ERROR_CREATE_WORKBOOK = -2;
-        private const int ERROR_CREATE_RESULT = -3;
+        public const int ERROR_CANCEL = 0;
+        public const int ERROR_LOAD_PALETTE = -1;
+        public const int ERROR_CREATE_WORKBOOK = -2;
+        public const int ERROR_CREATE_RESULT = -3;
 
         private string FileName;
         private string PaletteName;
@@ -32,9 +32,10 @@ namespace BeadsImageConverter
         private Dictionary<string, string> PaletteMap;
         private Dictionary<Color, int> ColorCashe;
         private List<Bead> Palette;
-        private IProgress<int> Progress;
+        private IProgress<int> Progress, MainProgress;
         private int ProgressCount;
         private CancellationTokenSource Cancel;
+        private FormImages FormImages;
 
         public FormMain()
         {
@@ -42,78 +43,98 @@ namespace BeadsImageConverter
             PaletteMap = new Dictionary<string, string>();
             ColorCashe = new Dictionary<Color, int>();
             Palette = new List<Bead>();
-            Progress = new Progress<int>(new Action<int>(showProgress));
+            MainProgress = new Progress<int>(new Action<int>(showProgress));
+            Progress = MainProgress;
+
+            // タイトルの設定
             AssemblyName name = Assembly.GetExecutingAssembly().GetName();
             Text = string.Format("{0} v{1}", name.Name, name.Version);
+
+            // 画像一覧フォームの表示
+            RectangleToScreen(ClientRectangle);
+            FormImages = new FormImages();
+            FormImages.Left = DesktopBounds.Right;
+            FormImages.Top = DesktopBounds.Top;
+            FormImages.StartPosition = FormStartPosition.Manual;
+            FormImages.Show(this);
+
+            // D&Dの設定
             pbImage.AllowDrop = true;
+
+            // パレット一覧の読み込み
             loadPaletteName();
         }
 
         private void pbImage_Click(object sender, EventArgs e)
         {
-            loadImage();
+            openImage();
         }
 
         private void pbImage_DragEnter(object sender, DragEventArgs e)
         {
-            // 単一の画像ファイルのみD&Dを許可する
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
-            {
-                string[] fileName = (string[])e.Data.GetData(DataFormats.FileDrop);
-                string ext = Path.GetExtension(fileName[0]);
-                if (fileName.Length == 1 && (ext == ".png" || ext == ".bmp" || ext == ".gif"))
-                {
-                    e.Effect = DragDropEffects.Move;
-                    return;
-                }
-            }
-            e.Effect = DragDropEffects.None;
+            e.Effect = getDropEffect(e);
         }
 
         private void pbImage_DragDrop(object sender, DragEventArgs e)
         {
-            string[] fileName = (string[])e.Data.GetData(DataFormats.FileDrop);
-            showPreview(fileName[0]);
+            string[] fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
+            FormImages.clearItem();
+            loadImage(fileNames);
         }
 
-        private void lbLoad_Click(object sender, EventArgs e)
-        {
-            pbImage_Click(sender, e);
-        }
-
-        private void lbLoad_DragEnter(object sender, DragEventArgs e)
-        {
-            pbImage_DragEnter(sender, e);
-        }
-
-        private void lbLoad_DragDrop(object sender, DragEventArgs e)
-        {
-            pbImage_DragDrop(sender, e);
-        }
-
-        private void cbConvert_CheckedChanged(object sender, EventArgs e)
+        private async void cbConvert_CheckedChanged(object sender, EventArgs e)
         {
             if (cbConvert.Checked)
             {
                 cbConvert.Text = "キャンセル";
-                pbImage.Enabled = false;
-                cbPalette.Enabled = false;
-                cbSpecial.Enabled = false;
-                cbDiscontinue.Enabled = false;
-                convert(cbPalette.Text);
+                setEnabled(false);
+                await convert(MainProgress, cbPalette.Text);
             }
             else
             {
                 cbConvert.Text = "変換";
-                pbImage.Enabled = true;
-                cbPalette.Enabled = true;
-                cbSpecial.Enabled = true;
-                cbDiscontinue.Enabled = true;
-                if (Cancel != null)
-                {
-                    Cancel.Cancel();
-                }
+                setEnabled(true);
+                cancel();
             }
+        }
+
+        private void cbPalette_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            FormImages.setPalette(cbPalette.Text);
+        }
+
+        private void cbSpecial_CheckedChanged(object sender, EventArgs e)
+        {
+            FormImages.setSpecial(cbSpecial.Checked);
+        }
+
+        private void cbDiscontinue_CheckedChanged(object sender, EventArgs e)
+        {
+            FormImages.setDiscontinue(cbDiscontinue.Checked);
+        }
+
+        /// <summary>
+        ///     ドロップエフェクトを取得する
+        /// </summary>
+        /// <param name="e">ドロップイベント</param>
+        /// <returns>ドロップエフェクト</returns>
+        public DragDropEffects getDropEffect(DragEventArgs e)
+        {
+            // 画像ファイルのみD&Dを許可する
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] fileNames = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (string fileName in fileNames)
+                {
+                    string ext = Path.GetExtension(fileName);
+                    if (ext != ".png" && ext != ".bmp" && ext != ".gif")
+                    {
+                        return DragDropEffects.None;
+                    }
+                }
+                return DragDropEffects.Move;
+            }
+            return DragDropEffects.None;
         }
 
         /// <summary>
@@ -171,23 +192,68 @@ namespace BeadsImageConverter
         }
 
         /// <summary>
-        ///     画像ファイルを読み込む
+        ///     画像ファイルを開く
         /// </summary>
-        private void loadImage()
+        public void openImage()
         {
             using (OpenFileDialog ofd = new OpenFileDialog())
             {
                 ofd.Filter = "画像 ファイル(*.bmp, *.png, *.gif)|*.bmp;*.png;*.gif";
                 ofd.FilterIndex = 2;
+                ofd.Multiselect = true;
                 if (FileName != null)
                 {
                     ofd.InitialDirectory = FileName;
                 }
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
-                    showPreview(ofd.FileName);
+                    loadImage(ofd.FileNames);
                 }
             }
+        }
+
+        /// <summary>
+        ///     画像ファイルを読み込む
+        /// </summary>
+        /// <param name="fileNames">ファイルパス</param>
+        public void loadImage(string[] fileNames)
+        {
+            string loaded = null;
+            foreach (string fileName in fileNames)
+            {
+                using (Bitmap image = new Bitmap(fileName))
+                {
+                    FormImages.addItem(fileName, image, cbPalette.Text, cbSpecial.Checked, cbDiscontinue.Checked);
+                    loaded = fileName;
+                }
+            }
+            if (loaded != null)
+            {
+                showPreview(loaded);
+            }
+        }
+
+        public void clearImage()
+        {
+            pbImage.Image = null;
+            lbLoad.Visible = true;
+        }
+
+        /// <summary>
+        ///     プログレスバーを更新する
+        /// </summary>
+        /// <param name="progress">更新値</param>
+        public void setProgress(int progress)
+        {
+            if (progress < pbWork.Minimum)
+            {
+                progress = pbWork.Minimum;
+            }
+            if (progress > pbWork.Maximum)
+            {
+                progress = pbWork.Maximum;
+            }
+            pbWork.Value = progress;
         }
 
         /// <summary>
@@ -198,7 +264,7 @@ namespace BeadsImageConverter
         {
             if (0 < progress && progress <= pbWork.Maximum)
             {
-                pbWork.Value = progress;
+                setProgress(progress);
             }
             else
             {
@@ -220,9 +286,25 @@ namespace BeadsImageConverter
                         MessageBox.Show(this, "変換が完了しました", "完了", MessageBoxButtons.OK, MessageBoxIcon.Information);
                         break;
                 }
-                pbWork.Value = 0;
+                setProgress(0);
                 cbConvert.Checked = false;
             }
+            FormImages.showProgress(progress);
+        }
+
+        /// <summary>
+        ///     設定を反映する
+        /// </summary>
+        /// <param name="fileName">ファイルパス</param>
+        /// <param name="palette">パレット名</param>
+        /// <param name="special">特殊ビーズ</param>
+        /// <param name="discontinue">廃盤ビーズ</param>
+        public void setState(string fileName, string palette, bool special, bool discontinue)
+        {
+            cbPalette.SelectedItem = palette;
+            cbSpecial.Checked = special;
+            cbDiscontinue.Checked = discontinue;
+            showPreview(fileName);
         }
 
         /// <summary>
@@ -231,12 +313,7 @@ namespace BeadsImageConverter
         /// <param name="fileName">ファイルパス</param>
         private void showPreview(string fileName)
         {
-            if (!File.Exists(fileName))
-            {
-                MessageBox.Show("ファイルが存在しません", "エラー", MessageBoxButtons.OK, MessageBoxIcon.Hand);
-                return;
-            }
-
+            if (fileName == FileName) return;
             FileName = fileName;
             lbLoad.Visible = false;
             Bitmap bitmap = new Bitmap(pbImage.Width, pbImage.Height);
@@ -248,15 +325,40 @@ namespace BeadsImageConverter
                 g.DrawImage(Image, 0, 0, bitmap.Width, bitmap.Height);
             }
             pbImage.Image = bitmap;
-            cbConvert.Enabled = cbPalette.Enabled;
+            cbConvert.Enabled = !Enabled || cbPalette.Enabled;
+        }
+
+        /// <summary>
+        ///     コントロールの有効状態を設定する
+        /// </summary>
+        /// <param name="enabled">有効状態</param>
+        private void setEnabled(bool enabled)
+        {
+            FormImages.Enabled = enabled;
+            pbImage.Enabled = enabled;
+            cbPalette.Enabled = enabled;
+            cbSpecial.Enabled = enabled;
+            cbDiscontinue.Enabled = enabled;
+        }
+
+        /// <summary>
+        ///     変換をキャンセルする
+        /// </summary>
+        public void cancel()
+        {
+            if (Cancel != null)
+            {
+                Cancel.Cancel();
+            }
         }
 
         /// <summary>
         ///     画像ファイルの変換を行なう
         /// </summary>
         /// <param name="paletteName">パレット名</param>
-        private async void convert(string paletteName)
+        public async Task convert(IProgress<int> progress, string paletteName)
         {
+            Progress = progress;
             ProgressCount = 0;
             await Task.Run(() =>
             {
@@ -651,5 +753,6 @@ namespace BeadsImageConverter
             result.Columns(2, 2).Width = 23.57;
             result.Rows(1, 1).Height = 26.25;
         }
+
     }
 }
