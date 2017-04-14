@@ -15,17 +15,17 @@ namespace BeadsImageConverter
         public static readonly CIELAB Black = FromColor(Color.Black);
         private static readonly double Max = Diff(White, Black);
 
-        public readonly int L;
-        public readonly int A;
-        public readonly int B;
+        public readonly double L;
+        public readonly double A;
+        public readonly double B;
 
         private static int[] CreateGammaTable()
         {
             int[] table = new int[256];
             for (int i = 0; i < 256; i++)
             {
-                double value = (double)i / 255.0;
-                table[i] = (int)(((value > 0.04045) ? Math.Pow((value + 0.055) / 1.055, 2.4) : (value / 12.92)) * 100000.0);
+                double d = i / 255d;
+                table[i] = (int)(((d > 0.04045) ? Math.Pow((d + 0.055) / 1.055, 2.4) : (d / 12.92)) * 100000d);
             }
             return table;
         }
@@ -35,8 +35,8 @@ namespace BeadsImageConverter
             int[] table = new int[100001];
             for (int i = 0; i < table.Count<int>(); i++)
             {
-                double value = (double)i / 100001.0;
-                table[i] = (int)(((value > 0.008856) ? Math.Pow(value, 0.33333333333333331) : (7.787 * value + 0.13793103448275862)) * 1000000.0);
+                double d = i / 100001d;
+                table[i] = (int)(((d > 0.008856) ? Math.Pow(d, 1d / 3d) : (7.787 * d + 4d / 29d)) * 1000000d);
             }
             return table;
         }
@@ -72,7 +72,12 @@ namespace BeadsImageConverter
             int A = 500 * (x - y);
             int B = 200 * (y - z);
 
-            return new CIELAB(L, A, B);
+            return new CIELAB(L / 1000000d, A / 1000000d, B / 1000000d);
+        }
+
+        public static double Difference(Color src, Color dst)
+        {
+            return Difference(FromColor(src), FromColor(dst));
         }
 
         public static double Difference(CIELAB src, CIELAB dst)
@@ -80,7 +85,7 @@ namespace BeadsImageConverter
             return Diff(src, dst) / Max;
         }
 
-        public CIELAB(int l, int a, int b)
+        public CIELAB(double l, double a, double b)
         {
             this.L = l;
             this.A = a;
